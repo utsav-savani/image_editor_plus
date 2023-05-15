@@ -53,6 +53,7 @@ class _ImageEditorExampleState extends State<ImageEditorExample> {
                 MaterialPageRoute(
                   builder: (context) => ImageEditor(
                     image: imageData,
+                    loaderView: const CircularProgressIndicator(),
                   ),
                 ),
               );
@@ -78,6 +79,7 @@ class _ImageEditorExampleState extends State<ImageEditorExample> {
                     allowMultiple: true,
                     allowCamera: true,
                     allowGallery: true,
+                    loaderView: const CircularProgressIndicator(),
                   ),
                 ),
               );

@@ -2,6 +2,7 @@ library image_editor_plus;
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:js_interop';
 import 'dart:math' as math;
 import 'package:colorfilter_generator/colorfilter_generator.dart';
 import 'package:colorfilter_generator/presets.dart';
@@ -44,6 +45,7 @@ class ImageEditor extends StatelessWidget {
   final Directory? savePath;
   final int maxLength;
   final bool allowGallery, allowCamera, allowMultiple;
+  final Widget loaderView;
 
   const ImageEditor(
       {Key? key,
@@ -54,6 +56,7 @@ class ImageEditor extends StatelessWidget {
       this.allowGallery = false,
       this.allowMultiple = false,
       this.maxLength = 99,
+      required this.loaderView,
       Color? appBar})
       : super(key: key);
 
@@ -72,6 +75,7 @@ class ImageEditor extends StatelessWidget {
         allowGallery: allowGallery,
         allowMultiple: allowMultiple,
         maxLength: maxLength,
+        loaderView: loaderView,
       );
     } else {
       return SingleImageEditor(
@@ -79,6 +83,7 @@ class ImageEditor extends StatelessWidget {
         savePath: savePath,
         allowCamera: allowCamera,
         allowGallery: allowGallery,
+        loaderView: loaderView,
       );
     }
   }
@@ -120,6 +125,7 @@ class MultiImageEditor extends StatefulWidget {
   final List images;
   final int maxLength;
   final bool allowGallery, allowCamera, allowMultiple;
+  final Widget loaderView;
 
   const MultiImageEditor({
     Key? key,
@@ -129,6 +135,7 @@ class MultiImageEditor extends StatefulWidget {
     this.allowGallery = false,
     this.allowMultiple = false,
     this.maxLength = 99,
+    required this.loaderView,
   }) : super(key: key);
 
   @override
@@ -208,6 +215,7 @@ class _MultiImageEditorState extends State<MultiImageEditor> {
                               MaterialPageRoute(
                                 builder: (context) => SingleImageEditor(
                                   image: image,
+                                  loaderView: widget.loaderView,
                                 ),
                               ),
                             );
@@ -314,15 +322,17 @@ class SingleImageEditor extends StatefulWidget {
   final dynamic image;
   final List? imageList;
   final bool allowCamera, allowGallery;
+  final Widget loaderView;
 
-  const SingleImageEditor({
-    Key? key,
-    this.savePath,
-    this.image,
-    this.imageList,
-    this.allowCamera = false,
-    this.allowGallery = false,
-  }) : super(key: key);
+  const SingleImageEditor(
+      {Key? key,
+      this.savePath,
+      this.image,
+      this.imageList,
+      this.allowCamera = false,
+      this.allowGallery = false,
+      required this.loaderView})
+      : super(key: key);
 
   @override
   createState() => _SingleImageEditorState();
@@ -338,6 +348,7 @@ class _SingleImageEditorState extends State<SingleImageEditor> {
   final GlobalKey container = GlobalKey();
   final GlobalKey globalKey = GlobalKey();
   ScreenshotController screenshotController = ScreenshotController();
+  bool isLoading = false;
 
   @override
   void dispose() {
@@ -409,11 +420,15 @@ class _SingleImageEditorState extends State<SingleImageEditor> {
         padding: const EdgeInsets.symmetric(horizontal: 8),
         icon: const Icon(Icons.check),
         onPressed: () async {
+          setState(() {
+            isLoading = true;
+          });
           resetTransformation();
-
           var binaryIntList =
               await screenshotController.capture(pixelRatio: pixelRatio);
-
+          setState(() {
+            isLoading = false;
+          });
           Navigator.pop(context, binaryIntList);
         },
       ),
@@ -549,39 +564,46 @@ class _SingleImageEditorState extends State<SingleImageEditor> {
           onScaleEnd: (details) {
             lastScaleFactor = scaleFactor;
           },
-          child: Center(
-            child: SizedBox(
-              height: currentImage.height / pixelRatio,
-              width: currentImage.width / pixelRatio,
-              child: Screenshot(
-                controller: screenshotController,
-                child: RotatedBox(
-                  quarterTurns: rotateValue,
-                  child: Transform(
-                    transform: Matrix4(
-                      1,
-                      0,
-                      0,
-                      0,
-                      0,
-                      1,
-                      0,
-                      0,
-                      0,
-                      0,
-                      1,
-                      0,
-                      x,
-                      y,
-                      0,
-                      1 / scaleFactor,
-                    )..rotateY(flipValue),
-                    alignment: FractionalOffset.center,
-                    child: layersStack,
+          child: Stack(
+            children: [
+              Center(
+                child: SizedBox(
+                  height: currentImage.height / pixelRatio,
+                  width: currentImage.width / pixelRatio,
+                  child: Screenshot(
+                    controller: screenshotController,
+                    child: RotatedBox(
+                      quarterTurns: rotateValue,
+                      child: Transform(
+                        transform: Matrix4(
+                          1,
+                          0,
+                          0,
+                          0,
+                          0,
+                          1,
+                          0,
+                          0,
+                          0,
+                          0,
+                          1,
+                          0,
+                          x,
+                          y,
+                          0,
+                          1 / scaleFactor,
+                        )..rotateY(flipValue),
+                        alignment: FractionalOffset.center,
+                        child: layersStack,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+              isLoading
+                  ? Positioned.fill(child: Center(child: widget.loaderView))
+                  : const SizedBox()
+            ],
           ),
         ),
         bottomNavigationBar: Container(

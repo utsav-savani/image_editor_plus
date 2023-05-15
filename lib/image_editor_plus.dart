@@ -2,7 +2,7 @@ library image_editor_plus;
 
 import 'dart:async';
 import 'dart:io';
-import 'dart:js_interop';
+// import 'dart:js_interop';
 import 'dart:math' as math;
 import 'package:colorfilter_generator/colorfilter_generator.dart';
 import 'package:colorfilter_generator/presets.dart';
